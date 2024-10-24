@@ -22,10 +22,18 @@ func init() {
 func Notify(c types.Chan) {
 	_, err := bot.Send(
 		&tele.User{ID: config.Config.ChatID},
-		fmt.Sprintf("[%s]: %s", c.Rpc, c.Err),
+		fmt.Sprintf("[%s]: %s", c.Rpc, longErrChcek(c.Err)),
 		&tele.SendOptions{},
 	)
 	if err != nil {
 		log.Printf("Failed to send message: %s", err)
 	}
+}
+
+func longErrChcek(err error) (txt string) {
+	txt = err.Error()
+	if len(txt) > 150 {
+		return txt[:150]
+	}
+	return txt
 }
