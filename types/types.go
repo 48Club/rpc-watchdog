@@ -7,6 +7,7 @@ type Config struct {
 	Token          string        `json:"token"`
 	Interval       time.Duration `json:"interval"`
 	NotifyInterval time.Duration `json:"notify_interval"`
+	AllowSlow      int64         `json:"allow_slow"`
 	RpcList        []string      `json:"rpc_list"`
 }
 

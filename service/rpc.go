@@ -47,8 +47,8 @@ func checkRpc(rpc string) error {
 		return err
 	}
 
-	if time.Now().Unix()-int64(h.Time) > 6 {
-		return fmt.Errorf("rpc %s is slow, block time: %d", rpc, h.Time)
+	if tt := time.Now().Unix() - int64(h.Time); tt >= config.Config.AllowSlow {
+		return fmt.Errorf("rpc %s is slow, %d seconds slower", rpc, tt)
 	}
 
 	return fakeTx(ec)
