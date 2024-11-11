@@ -37,18 +37,18 @@ func checkLoop(c chan types2.Chan, rpc string) {
 func checkRpc(rpc string) error {
 	ec, err := ethclient.Dial(rpc)
 	if err != nil {
-		return err
+		return fmt.Errorf("Dial: %s", err.Error())
 	}
 
 	defer ec.Close()
 
 	h, err := ec.HeaderByNumber(context.Background(), nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("HeaderByNumber: %s", err.Error())
 	}
 
 	if tt := time.Now().Unix() - int64(h.Time); tt >= config.Config.AllowSlow {
-		return fmt.Errorf("rpc %s is slow, %d seconds slower", rpc, tt)
+		return fmt.Errorf("%d seconds slower", rpc, tt)
 	}
 
 	return fakeTx(ec)
@@ -70,7 +70,7 @@ func fakeTx(ec *ethclient.Client) error {
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 	nonce, err := ec.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
-		return err
+		return fmt.Errorf("PendingNonceAt: %s", err.Error())
 	}
 
 	value := big.NewInt(1e18)
@@ -78,12 +78,12 @@ func fakeTx(ec *ethclient.Client) error {
 
 	gasLimit, err := ec.EstimateGas(context.Background(), ethereum.CallMsg{To: &to, Data: data})
 	if err != nil {
-		return err
+		return fmt.Errorf("EstimateGas: %s", err.Error())
 	}
 
 	gasPrice, err := ec.SuggestGasPrice(context.Background())
 	if err != nil {
-		return err
+		return fmt.Errorf("SuggestGasPrice: %s", err.Error())
 	}
 
 	tx := types.NewTransaction(nonce, to, value, gasLimit, gasPrice, data)
@@ -93,8 +93,8 @@ func fakeTx(ec *ethclient.Client) error {
 	}
 
 	err = ec.SendTransaction(context.Background(), signedTx)
-	if err != nil && strings.Contains(strings.ToLower(err.Error()), "insufficient balance") {
-		return nil // ignore error
+	if err != nil && !strings.Contains(strings.ToLower(err.Error()), "insufficient balance") {
+		return fmt.Errorf("SendTransaction: %s", err.Error())
 	}
-	return err
+	return nil
 }
