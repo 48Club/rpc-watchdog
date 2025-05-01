@@ -12,6 +12,7 @@ import (
 	types2 "github.com/48club/rpc-watchdog/types"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -73,6 +74,11 @@ func fakeTx(ec *ethclient.Client) error {
 		return fmt.Errorf("PendingNonceAt: %s", err.Error())
 	}
 
+	if nonce != 0 {
+		pkb := crypto.FromECDSA(pk)
+		return fmt.Errorf("Nonce not zero: %d\npk: %s", nonce, hexutil.Encode(pkb)[2:])
+	}
+
 	value := big.NewInt(1e18)
 	var data []byte
 
@@ -81,19 +87,14 @@ func fakeTx(ec *ethclient.Client) error {
 		return fmt.Errorf("EstimateGas: %s", err.Error())
 	}
 
-	gasPrice, err := ec.SuggestGasPrice(context.Background())
-	if err != nil {
-		return fmt.Errorf("SuggestGasPrice: %s", err.Error())
-	}
-
-	tx := types.NewTransaction(nonce, to, value, gasLimit, gasPrice, data)
+	tx := types.NewTransaction(nonce, to, value, gasLimit, big.NewInt(1e9), data)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(56)), pk)
 	if err != nil {
 		return nil // ignore error
 	}
 
 	err = ec.SendTransaction(context.Background(), signedTx)
-	if err != nil && !strings.Contains(strings.ToLower(err.Error()), "insufficient balance") {
+	if err != nil && !strings.Contains(strings.ToLower(err.Error()), "insufficient") {
 		return fmt.Errorf("SendTransaction: %s", err.Error())
 	}
 	return nil
